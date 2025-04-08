@@ -122,8 +122,6 @@ with tabs[0]:
                     st.session_state.message = "It's a draw!"
 
 with tabs[0]:
-    st.header("Tic Tac Toe: Human vs AI")
-    st.write("You are X and the AI is O. Click on a cell to make your move.")
 
     # ... [Keep all game state initialization here] ...
 
