@@ -1,0 +1,7 @@
+#ECHO is on.
+[theme]
+primaryColor = "#007BFF"      # Blue for interactive elements
+backgroundColor = "#FFFFFF"    # White background for main content
+secondaryBackgroundColor = "#F8F9FA"  # Light gray for sidebars/widgets
+textColor = "#212529"         # Dark gray for readable text
+font = "sans serif"           # Modern, clean font

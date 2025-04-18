@@ -1,6 +1,8 @@
 import streamlit as st
 import math
 from queue import PriorityQueue
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 
 # Set page configuration
 st.set_page_config(page_title="AI Experiments", layout="centered")
@@ -26,12 +28,7 @@ def set_active_tab(tab_name):
     st.session_state['active_tab'] = tab_name
     st.rerun()
 
-
-
-        
-# ===========================
-# 1. Tic Tac Toe (Human vs AI)
-# ===========================
+# Tic Tac Toe (Human vs AI)
 with tabs[0]:
     st.header("Tic Tac Toe: Human vs AI")
     st.write("You are X and the AI is O. Click on a cell to make your move.")
@@ -96,7 +93,6 @@ with tabs[0]:
             return best_score, best_move
 
     def ai_move():
-        # Use minimax to determine best move for AI.
         _, move = minimax(st.session_state.ttt_board, 0, True)
         if move is not None:
             st.session_state.ttt_board[move] = AI
@@ -121,11 +117,7 @@ with tabs[0]:
                     st.session_state.game_over = True
                     st.session_state.message = "It's a draw!"
 
-with tabs[0]:
-
-    # ... [Keep all game state initialization here] ...
-
-    def reset_ttt():  # Move reset function inside the tab context
+    def reset_ttt():
         st.session_state.ttt_board = ["" for _ in range(9)]
         st.session_state.game_over = False
         st.session_state.message = ""
@@ -151,32 +143,42 @@ with tabs[0]:
         reset_ttt()
         st.rerun()
 
-
-# ===========================
-# 2. Water Jug (Hill Climbing)
-# ===========================
+# Water Jug with graphical UI
 with tabs[1]:
     st.header("Water Jug Problem (Hill Climbing)")
     st.write("Enter the capacities for Jug 1 and Jug 2 and the target volume.")
-
     jug1 = st.number_input("Jug 1 Capacity", value=3, min_value=1)
     jug2 = st.number_input("Jug 2 Capacity", value=5, min_value=1)
     target = st.number_input("Target Volume", value=4, min_value=1)
 
+    def plot_jugs(j1_cap, j1_amount, j2_cap, j2_amount):
+        fig, ax = plt.subplots()
+        # Jug1
+        ax.add_patch(Rectangle((0, 0), 1, j1_cap, edgecolor='black', facecolor='none'))
+        ax.add_patch(Rectangle((0, 0), 1, j1_amount, facecolor='blue'))
+        ax.text(0.5, -0.5, f"Jug1: {j1_amount}/{j1_cap}", ha='center')
+        # Jug2
+        ax.add_patch(Rectangle((2, 0), 1, j2_cap, edgecolor='black', facecolor='none'))
+        ax.add_patch(Rectangle((2, 0), 1, j2_amount, facecolor='blue'))
+        ax.text(2.5, -0.5, f"Jug2: {j2_amount}/{j2_cap}", ha='center')
+        ax.set_xlim(-1, 4)
+        ax.set_ylim(-1, max(j1_cap, j2_cap) + 1)
+        ax.set_aspect('equal')
+        ax.axis('off')
+        st.pyplot(fig)
+
     def hill_climbing(j1, j2, goal):
-        # Using breadth-first style search to simulate hill climbing behavior.
         visited = set()
         queue = [(0, 0)]
         path = []
         while queue:
-            a, b = queue.pop(0)  # FIFO for a simple search
+            a, b = queue.pop(0)
             if (a, b) in visited:
                 continue
             visited.add((a, b))
             path.append((a, b))
             if a == goal or b == goal:
                 return path
-            # Possible moves: fill, empty, and pour from one jug to the other.
             possible = [
                 (j1, b),      # Fill Jug1
                 (a, j2),      # Fill Jug2
@@ -193,24 +195,32 @@ with tabs[1]:
     if st.button("Solve Water Jug"):
         solution = hill_climbing(jug1, jug2, target)
         if solution:
-            st.write("Solution Steps (Jug1, Jug2):")
-            for step in solution:
-                st.write(step)
+            st.write("Solution Steps:")
+            for idx, (a, b) in enumerate(solution):
+                st.write(f"Step {idx + 1}: Jug1 = {a}, Jug2 = {b}")
+                plot_jugs(jug1, a, jug2, b)
         else:
             st.error("No solution found.")
 
-# ===========================
-# 3. 8 Puzzle Problem (Greedy Best First Search)
-# ===========================
+# 8 Puzzle with grid display
 with tabs[2]:
     st.header("8 Puzzle Problem (Greedy Best First Search)")
     st.write("Enter the start and goal states as comma-separated 9 digits (use 0 for blank).")
-    
     start_input = st.text_input("Start State", "1,2,3,4,5,6,7,8,0")
     goal_input = st.text_input("Goal State", "1,2,3,4,5,6,7,8,0")
 
+    def display_puzzle(state):
+        for i in range(3):
+            cols = st.columns(3)
+            for j in range(3):
+                idx = i * 3 + j
+                value = state[idx]
+                if value == 0:
+                    cols[j].write(" ")
+                else:
+                    cols[j].write(value)
+
     def heuristic(state, goal):
-        # Using the number of misplaced tiles as heuristic.
         return sum(1 for i in range(9) if state[i] != goal[i])
 
     def get_moves(pos):
@@ -247,49 +257,46 @@ with tabs[2]:
             path = greedy_bfs(start_state, goal_state)
             if path:
                 st.write("Solution Path:")
-                for step in path:
-                    st.write(step)
+                for idx, state in enumerate(path):
+                    st.write(f"Step {idx + 1}:")
+                    display_puzzle(state)
             else:
                 st.error("No solution found.")
         except Exception as e:
             st.error("Invalid input. Please enter 9 comma-separated numbers for each state.")
 
-# ===========================
-# 4. Find-S Algorithm
-# ===========================
+# Find-S with intermediary hypotheses
 with tabs[3]:
     st.header("Find-S Algorithm")
     st.write("Enter positive examples (one per line, attributes comma-separated). Example:")
     st.code("sunny,warm,normal,strong,yes")
-    
     find_s_input = st.text_area("Enter positive examples:")
-    
     if st.button("Run Find-S"):
         try:
-            # Only consider examples with a positive label (assumed to be the last value 'yes')
             lines = [line.split(',') for line in find_s_input.splitlines() if line.strip() and line.strip().lower().endswith("yes")]
             if not lines:
                 st.error("Please enter at least one positive example ending with 'yes'.")
             else:
                 hypothesis = lines[0][:-1]
+                st.write("Initial Hypothesis:")
+                st.table([hypothesis])
                 for ex in lines[1:]:
                     for i in range(len(hypothesis)):
                         if hypothesis[i] != ex[i]:
                             hypothesis[i] = "?"
-                st.write("Final Hypothesis:", hypothesis)
+                    st.write(f"After example {ex[:-1]}:")
+                    st.table([hypothesis])
+                st.write("Final Hypothesis:")
+                st.table([hypothesis])
         except Exception as e:
             st.error("Error processing input. Ensure the format is correct.")
 
-# ===========================
-# 5. Candidate Elimination
-# ===========================
+# Candidate Elimination with intermediary S and G
 with tabs[4]:
     st.header("Candidate Elimination Algorithm")
     st.write("Enter examples (one per line, attributes comma-separated, last value as yes/no).")
     st.code("sunny,warm,normal,strong,yes\nsunny,cold,high,strong,no")
-    
     ce_input = st.text_area("Enter dataset:")
-    
     if st.button("Run Candidate Elimination"):
         try:
             lines = [line.split(',') for line in ce_input.splitlines() if line.strip()]
@@ -297,31 +304,45 @@ with tabs[4]:
                 st.error("Please enter some examples.")
             else:
                 n_attrs = len(lines[0]) - 1
-                # Initialize Specific boundary S and General boundary G
-                S = lines[0][:-1]
+                S = ["∅" for _ in range(n_attrs)]
                 G = [["?" for _ in range(n_attrs)]]
+                st.write("Initial Specific Hypothesis (S):")
+                st.table([S])
+                st.write("Initial General Hypothesis (G):")
+                st.table([G])
                 for ex in lines:
                     attrs, label = ex[:-1], ex[-1].strip().lower()
                     if label == "yes":
-                        # Update S: Generalize attributes where necessary
                         for i in range(n_attrs):
-                            if S[i] != attrs[i]:
+                            if S[i] == "∅":
+                                S[i] = attrs[i]
+                            elif S[i] != attrs[i]:
                                 S[i] = "?"
-                        # Remove from G any hypothesis inconsistent with this example
                         G = [g for g in G if all(g[i] == "?" or g[i] == attrs[i] for i in range(n_attrs))]
                     elif label == "no":
                         G_new = []
                         for g in G:
-                            for i in range(n_attrs):
-                                if g[i] == "?" and S[i] != attrs[i]:
-                                    new_h = g[:]
-                                    new_h[i] = S[i]
-                                    if new_h not in G_new:
-                                        G_new.append(new_h)
-                        G = G_new if G_new else G
-                st.write("Final Specific Hypothesis (S):", S)
+                            if any(g[i] == "?" or g[i] == attrs[i] for i in range(n_attrs)):
+                                for j in range(n_attrs):
+                                    if g[j] == "?" and attrs[j] != S[j]:
+                                        new_g = g[:]
+                                        new_g[j] = S[j]
+                                        G_new.append(new_g)
+                        G = G_new
+                    st.write(f"After example {ex}:")
+                    st.write("Specific Hypothesis (S):")
+                    st.table([S])
+                    st.write("General Hypotheses (G):")
+                    if G:
+                        st.table(G)
+                    else:
+                        st.write("No general hypotheses.")
+                st.write("Final Specific Hypothesis (S):")
+                st.table([S])
                 st.write("Final General Hypotheses (G):")
-                for g in G:
-                    st.write(g)
+                if G:
+                    st.table(G)
+                else:
+                    st.write("No general hypotheses.")
         except Exception as e:
             st.error("Error processing dataset. Ensure the format is correct.")
